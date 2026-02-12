@@ -1,0 +1,3467 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת מעקב אימונים למאבטחים</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        /* כל הסגנונות נשארים כמו שהיו */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --gray-color: #7f8c8d;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            direction: rtl;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 28px;
+            color: var(--secondary-color);
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .auth-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--secondary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        nav {
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            list-style: none;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .nav-tabs li {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+        }
+        
+        .nav-tabs li:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .nav-tabs li.active {
+            border-bottom: 3px solid var(--secondary-color);
+            color: var(--secondary-color);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-success:hover {
+            background-color: #219653;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            text-align: right;
+            font-weight: 700;
+            color: var(--primary-color);
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .training-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .training-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            border-top: 4px solid var(--secondary-color);
+            transition: all 0.3s;
+        }
+        
+        .training-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .training-card.completed {
+            opacity: 0.8;
+            border-top-color: #27ae60;
+        }
+        
+        .training-card.quarterly {
+            border-top-color: #9b59b6;
+        }
+        
+        .training-card.seminar {
+            border-top-color: #1abc9c;
+        }
+        
+        .training-card.attack {
+            border-top-color: #e74c3c;
+        }
+        
+        .training-card.refresh {
+            border-top-color: #f39c12;
+        }
+        
+        .training-card.weapon {
+            border-top-color: #34495e;
+        }
+        
+        .training-card.control {
+            border-top-color: #3498db;
+        }
+        
+        .training-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .training-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .training-icon {
+            font-size: 24px;
+        }
+        
+        .training-body {
+            margin-bottom: 15px;
+        }
+        
+        .training-date {
+            color: var(--gray-color);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .training-location {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .guards-list {
+            margin-top: 15px;
+        }
+        
+        .guard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .guard-item:last-child {
+            border-bottom: none;
+        }
+        
+        .guard-status {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .status-select {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #ddd;
+            min-width: 100px;
+        }
+        
+        .status-attended {
+            background-color: #d5f4e6;
+            color: var(--success-color);
+        }
+        
+        .status-passed {
+            background-color: #d5f4e6;
+            color: var(--success-color);
+        }
+        
+        .status-failed {
+            background-color: #fadbd8;
+            color: var(--danger-color);
+        }
+        
+        .status-not-attended {
+            background-color: #f2f3f4;
+            color: var(--gray-color);
+        }
+        
+        .status-pending {
+            background-color: #fef9e7;
+            color: var(--warning-color);
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .chart-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            text-align: center;
+        }
+        
+        .history-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .history-year-select {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+            min-width: 150px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-color);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .guards-selection-container,
+        .trainings-selection-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .guard-selection-item,
+        .training-selection-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .guard-selection-item:last-child,
+        .training-selection-item:last-child {
+            border-bottom: none;
+        }
+        
+        .guard-selection-item label,
+        .training-selection-item label {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #d5f4e6;
+            color: var(--success-color);
+            border: 1px solid #a3e9c4;
+        }
+        
+        .alert-danger {
+            background-color: #fadbd8;
+            color: var(--danger-color);
+            border: 1px solid #f5b7b1;
+        }
+        
+        .alert-warning {
+            background-color: #fef9e7;
+            color: var(--warning-color);
+            border: 1px solid #f9e79f;
+        }
+        
+        .year-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .year-filter label {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .page-header-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stats-badge {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .training-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+        
+        .license-renewal-alert {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .license-renewal-alert h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .license-renewal-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .license-renewal-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #ffeaa7;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .license-renewal-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-container {
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .history-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .training-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-tabs {
+                justify-content: flex-start;
+            }
+            
+            .history-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .page-header-stats {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .year-filter {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- כותרת -->
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <h1>מערכת מעקב אימונים למאבטחים</h1>
+            </div>
+            <div class="auth-info">
+                <div class="user-info">
+                    <div class="user-avatar">מנהל</div>
+                    <div>
+                        <div class="user-name">מנהל מערכת</div>
+                        <div class="user-role">הרשאות מנהל</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> התנתקות
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- ניווט -->
+    <nav>
+        <div class="container">
+            <ul class="nav-tabs">
+                <li class="active" data-tab="guards">מאבטחים</li>
+                <li data-tab="dashboard">פאנל ניהול</li>
+                <li data-tab="trainings">לוח אימונים</li>
+                <li data-tab="history">היסטוריית אימונים</li>
+                <li data-tab="reports">דוחות וסטטיסטיקות</li>
+                <li data-tab="settings">הגדרות</li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- תוכן ראשי -->
+    <main class="container">
+        <!-- ניהול מאבטחים -->
+        <section id="guards" class="tab-content active">
+            <div class="page-header-stats">
+                <h2 class="page-title">ניהול מאבטחים</h2>
+                <div class="stats-badge" id="activeGuardsBadge">0 מאבטחים פעילים</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">טבלת מאבטחים</h3>
+                    <div>
+                        <button class="btn btn-warning" id="importGuardsBtn">ייבא מאקסל</button>
+                        <button class="btn btn-success" id="exportGuardsBtn">ייצא לאקסל</button>
+                        <button class="btn" id="addGuardBtn">הוסף מאבטח חדש</button>
+                    </div>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" id="guardSearch" class="search-box" placeholder="חיפוש מאבטח לפי שם, ת.ז או מתקן...">
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="guardsTable">
+                        <thead>
+                            <tr>
+                                <th>שם מלא</th>
+                                <th>תעודת זהות</th>
+                                <th>מתקן</th>
+                                <th>אימון טקטי</th>
+                                <th>אימון רבעוני</th>
+                                <th>יום עיון</th>
+                                <th>תרגיל תקיפה</th>
+                                <th>בקרה למאבטח</th>
+                                <th>רענון משטרתי</th>
+                                <th>חידוש רישיון נשק</th>
+                                <th>פעולות</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guardsTableBody">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        
+        <!-- פאנל ניהול -->
+        <section id="dashboard" class="tab-content">
+            <!-- התראות חידוש רישיון נשק -->
+            <div id="licenseRenewalAlerts">
+                <!-- יטען אוטומטית עם JavaScript -->
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">אימונים קרובים</h2>
+                </div>
+                <div id="upcomingTrainings">
+                    <!-- יטען אוטומטית עם JavaScript -->
+                    <div class="alert alert-success">טוען נתוני אימונים...</div>
+                </div>
+            </div>
+            
+            <!-- טבלת מאבטחים הזקוקים לשיבוץ -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">מאבטחים הזקוקים לשיבוץ לאימון</h2>
+                </div>
+                
+                <div class="form-row" style="margin-bottom: 20px;">
+                    <div class="form-group" style="min-width: 150px;">
+                        <label for="guardAssignmentYear">שנה:</label>
+                        <select id="guardAssignmentYear" class="form-control">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="min-width: 150px;">
+                        <label for="guardAssignmentMonth">חודש:</label>
+                        <select id="guardAssignmentMonth" class="form-control">
+                            <option value="all">כל החודשים</option>
+                            <option value="1">ינואר</option>
+                            <option value="2">פברואר</option>
+                            <option value="3">מרץ</option>
+                            <option value="4">אפריל</option>
+                            <option value="5">מאי</option>
+                            <option value="6">יוני</option>
+                            <option value="7">יולי</option>
+                            <option value="8">אוגוסט</option>
+                            <option value="9">ספטמבר</option>
+                            <option value="10">אוקטובר</option>
+                            <option value="11">נובמבר</option>
+                            <option value="12">דצמבר</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="min-width: 150px;">
+                        <label for="guardAssignmentType">סוג אימון:</label>
+                        <select id="guardAssignmentType" class="form-control">
+                            <option value="all">כל הסוגים</option>
+                            <option value="tactical">אימון טקטי</option>
+                            <option value="quarterly">אימון רבעוני</option>
+                            <option value="attack">תרגיל תקיפה</option>
+                            <option value="control">בקרה למאבטח</option>
+                            <option value="refresh">רענון משטרתי</option>
+                            <option value="weapon">חידוש רישיון נשק</option>
+                        </select>
+                    </div>
+                    
+                    <div style="align-self: flex-end;">
+                        <button class="btn" id="refreshAssignmentsBtn">רענן</button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table id="guardAssignmentsTable">
+                        <thead>
+                            <tr>
+                                <th>מאבטח</th>
+                                <th>תעודת זהות</th>
+                                <th>מתקן</th>
+                                <th>סוג אימון נדרש</th>
+                                <th>תאריך אימון אחרון</th>
+                                <th>חודש נדרש</th>
+                                <th>פעולה</th>
+                            </tr>
+                        </thead>
+                        <tbody id="guardAssignmentsTableBody">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        
+        <!-- לוח אימונים -->
+        <section id="trainings" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">לוח אימונים שנתי</h2>
+                    <div>
+                        <button class="btn" id="addTrainingBtn">הוסף אימון חדש</button>
+                    </div>
+                </div>
+                
+                <div class="year-filter">
+                    <div>
+                        <label for="trainingsYearSelect">שנה:</label>
+                        <select id="trainingsYearSelect" class="form-control" style="width: auto; margin-left: 10px;">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="trainingsTypeSelect">סוג אימון:</label>
+                        <select id="trainingsTypeSelect" class="form-control" style="width: auto; margin-left: 10px;">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="training-filter">
+                    <button class="filter-btn active" data-filter="incomplete">טרם הושלמו</button>
+                    <button class="filter-btn" data-filter="completed">הסתיימו</button>
+                    <button class="filter-btn" data-filter="all">כל האימונים</button>
+                </div>
+                
+                <div class="training-grid" id="trainingsGrid">
+                    <!-- יטען אוטומטית עם JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- היסטוריית אימונים -->
+        <section id="history" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">היסטוריית אימונים</h2>
+                </div>
+                
+                <div class="history-controls">
+                    <div>
+                        <label for="historyYearSelect">בחירת שנה: </label>
+                        <select id="historyYearSelect" class="history-year-select">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </select>
+                    </div>
+                    <div class="history-actions">
+                        <button class="btn" id="exportHistoryBtn">ייצא היסטוריה לאקסל</button>
+                    </div>
+                </div>
+                
+                <div id="historyContent">
+                    <!-- יטען אוטומטית עם JavaScript -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- דוחות וסטטיסטיקות -->
+        <section id="reports" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">פאנל ניהול מערכת</h2>
+                </div>
+                <div class="dashboard-stats">
+                    <div class="training-grid">
+                        <div class="training-card">
+                            <div class="training-header">
+                                <h3 class="training-title">אימונים מתוכננים</h3>
+                                <div class="training-icon">
+                                    <i class="fas fa-calendar-alt" style="color: #9b59b6;"></i>
+                                </div>
+                            </div>
+                            <div class="training-body">
+                                <div class="stat-number" id="plannedTrainingsCount">0</div>
+                                <div class="stat-description">אימונים לשנה הנוכחית</div>
+                            </div>
+                        </div>
+                        
+                        <div class="training-card">
+                            <div class="training-header">
+                                <h3 class="training-title">אימונים הושלמו</h3>
+                                <div class="training-icon">
+                                    <i class="fas fa-check-circle" style="color: #27ae60;"></i>
+                                </div>
+                            </div>
+                            <div class="training-body">
+                                <div class="stat-number" id="completedTrainingsCount">0</div>
+                                <div class="stat-description">אימונים שבוצעו בהצלחה</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">דוחות וסטטיסטיקות</h2>
+                    <div>
+                        <label for="reportsYearSelect">שנה:</label>
+                        <select id="reportsYearSelect" class="form-control" style="width: auto; margin-right: 10px;">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </select>
+                        <select id="reportPeriod" class="form-control" style="width: auto;">
+                            <option value="monthly">חודשי</option>
+                            <option value="quarterly">רבעוני</option>
+                            <option value="yearly" selected>שנתי</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3 class="chart-title">השתתפות באימונים לפי סוג</h3>
+                        <canvas id="trainingTypeChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">הצלחה באימונים לפי מתקן</h3>
+                        <canvas id="facilitySuccessChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">סטטוס אימונים שנתי</h3>
+                        <canvas id="yearlyStatusChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">אימונים קרובים לפי חודש</h3>
+                        <canvas id="upcomingTrainingsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- הגדרות -->
+        <section id="settings" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">הגדרות מערכת</h2>
+                </div>
+                
+                <div class="settings-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="systemName">שם המערכת</label>
+                            <input type="text" id="systemName" class="form-control" value="מערכת מעקב אימונים למאבטחים">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="adminEmail">אימייל מנהל</label>
+                            <input type="email" id="adminEmail" class="form-control" value="admin@security-training.co.il">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dataSync">סנכרון נתונים עם גורמים נוספים</label>
+                            <select id="dataSync" class="form-control" multiple style="height: 150px;">
+                                <option value="police" selected>משטרת ישראל</option>
+                                <option value="security_agency" selected>גופי אבטחה חיצוניים</option>
+                                <option value="facility_management">ניהול מתקנים</option>
+                                <option value="hr">מחלקת משאבי אנוש</option>
+                                <option value="training_division">מדור אימונים</option>
+                            </select>
+                            <small>החזק Ctrl (או Cmd במקב) כדי לבחור מספר אפשרויות</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="notificationSettings">התראות</label>
+                            <div style="margin-top: 10px;">
+                                <label><input type="checkbox" id="emailNotifications" checked> התראות באימייל על אימונים קרובים</label><br>
+                                <label><input type="checkbox" id="failedNotifications" checked> התראות על אימונים שנכשלו</label><br>
+                                <label><input type="checkbox" id="refreshNotifications" checked> התראות על צורך ברענון</label><br>
+                                <label><input type="checkbox" id="licenseNotifications" checked> התראות על חידוש רישיון נשק</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="backupSettings">גיבוי נתונים</label>
+                            <div style="margin-top: 10px;">
+                                <label><input type="checkbox" id="autoBackup" checked> גיבוי אוטומטי כל 5 דקות</label><br>
+                                <label><input type="checkbox" id="cloudBackup" checked> גיבוי לענן</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: left; margin-top: 20px;">
+                        <button class="btn btn-success" id="saveSettingsBtn">שמור הגדרות</button>
+                        <button class="btn btn-warning" id="backupNowBtn">בצע גיבוי עכשיו</button>
+                        <button class="btn" id="restoreBackupBtn">שחזר מגיבוי</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- מודל הוספת מאבטח -->
+    <div class="modal" id="addGuardModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">הוספת מאבטח חדש</h3>
+                <button class="modal-close" id="closeGuardModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="guardFullName">שם מלא</label>
+                        <input type="text" id="guardFullName" class="form-control" placeholder="הכנס שם מלא">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="guardId">תעודת זהות</label>
+                        <input type="text" id="guardId" class="form-control" placeholder="הכנס תעודת זהות">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="guardFacility">מתקן</label>
+                        <select id="guardFacility" class="form-control">
+                            <option value="מתקן א">מתקן א</option>
+                            <option value="מתקן ב">מתקן ב</option>
+                            <option value="מתקן ג">מתקן ג</option>
+                            <option value="מתקן ד">מתקן ד</option>
+                            <option value="מתקן ה">מתקן ה</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="guardWeaponDate">תאריך חידוש רישיון נשק</label>
+                        <input type="date" id="guardWeaponDate" class="form-control">
+                    </div>
+                </div>
+                
+                <div style="text-align: left; margin-top: 20px;">
+                    <button class="btn btn-success" id="saveGuardBtn">שמור מאבטח</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- מודל הוספת/עריכת אימון -->
+    <div class="modal" id="addTrainingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="trainingModalTitle">הוספת אימון חדש</h3>
+                <button class="modal-close" id="closeTrainingModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="newTrainingType">סוג האימון</label>
+                        <select id="newTrainingType" class="form-control">
+                            <option value="tactical">אימון טקטי</option>
+                            <option value="quarterly">אימון רבעוני</option>
+                            <option value="seminar">יום עיון</option>
+                            <option value="attack">תרגיל תקיפה</option>
+                            <option value="control">בקרה למאבטח</option>
+                            <option value="refresh">רענון משטרתי</option>
+                            <option value="weapon">חידוש רישיון נשק</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newTrainingDate">תאריך האימון</label>
+                        <input type="date" id="newTrainingDate" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="newTrainingLocation">מיקום</label>
+                        <input type="text" id="newTrainingLocation" class="form-control" placeholder="הכנס מיקום האימון">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newTrainingInstructor">מדריך</label>
+                        <input type="text" id="newTrainingInstructor" class="form-control" placeholder="שם המדריך">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="newTrainingDescription">תיאור האימון</label>
+                        <textarea id="newTrainingDescription" class="form-control" rows="3" placeholder="הכנס תיאור מפורט של האימון"></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>בחירת מאבטחים לאימון:</label>
+                        <div class="guards-selection-container" id="guardsSelectionForTraining">
+                            <!-- יטען אוטומטית עם JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: left; margin-top: 20px;">
+                    <button class="btn btn-success" id="saveTrainingBtn">שמור אימון</button>
+                    <button class="btn btn-danger" id="deleteTrainingBtn" style="display: none;">מחק אימון</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- מודל בחירת אימון לשיבוץ -->
+    <div class="modal" id="selectTrainingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">בחירת אימון לשיבוץ</h3>
+                <button class="modal-close" id="closeSelectTrainingModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="existingTrainingsList" class="trainings-selection-container">
+                    <!-- יטען אוטומטית עם JavaScript -->
+                </div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <span style="color: var(--gray-color);">או</span>
+                </div>
+                
+                <div style="text-align: left; margin-top: 20px;">
+                    <button class="btn btn-success" id="createNewTrainingFromAssignmentBtn">צור אימון חדש</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- מודל ייבוא מאקסל -->
+    <div class="modal" id="importExcelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">ייבוא מאבטחים מאקסל</h3>
+                <button class="modal-close" id="closeImportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>הוראות:</strong> הקובץ חייב להיות בפורמט Excel עם העמודות הבאות (בסדר זה):
+                    <ol style="margin-top: 10px; padding-right: 20px;">
+                        <li>שם מלא</li>
+                        <li>תעודת זהות</li>
+                        <li>מתקן</li>
+                        <li>תאריך חידוש רישיון נשק (YYYY-MM-DD) - אופציונלי</li>
+                    </ol>
+                    <p style="margin-top: 10px;">שורה ראשונה חייבת להכיל כותרות.</p>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="excelFile">בחר קובץ Excel</label>
+                        <input type="file" id="excelFile" class="form-control" accept=".xlsx, .xls">
+                    </div>
+                </div>
+                
+                <div id="importPreview" style="display: none; margin-top: 20px;">
+                    <h4>תצוגה מקדימה (5 שורות ראשונות):</h4>
+                    <div id="previewTable" class="table-responsive"></div>
+                </div>
+                
+                <div style="text-align: left; margin-top: 20px;">
+                    <button class="btn btn-success" id="importDataBtn" disabled>יבא נתונים</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // הגדרות בסיסיות
+        const STORAGE_KEY = 'securityTrainingSystem';
+        let isOnline = true;
+        
+        // נתונים לדוגמה
+        const sampleGuards = [
+            { id: 1, name: "דוד לוי", idNumber: "123456789", facility: "מתקן א", weaponLicenseDate: "2024-06-15" },
+            { id: 2, name: "ישראל כהן", idNumber: "987654321", facility: "מתקן ב", weaponLicenseDate: "2024-03-10" },
+            { id: 3, name: "שלמה מזרחי", idNumber: "456123789", facility: "מתקן ג", weaponLicenseDate: "2024-08-22" },
+            { id: 4, name: "משה פרץ", idNumber: "789456123", facility: "מתקן א", weaponLicenseDate: "2024-02-28" },
+            { id: 5, name: "אברהם יצחק", idNumber: "321654987", facility: "מתקן ד", weaponLicenseDate: "2024-11-05" },
+            { id: 6, name: "יעקב סעדון", idNumber: "654987321", facility: "מתקן ה", weaponLicenseDate: "2024-05-20" }
+        ];
+        
+        const trainingTypes = {
+            tactical: { name: "אימון טקטי", color: "#3498db", icon: "fas fa-bullseye" },
+            quarterly: { name: "אימון רבעוני", color: "#9b59b6", icon: "fas fa-calendar" },
+            seminar: { name: "יום עיון", color: "#1abc9c", icon: "fas fa-chalkboard-teacher" },
+            attack: { name: "תרגיל תקיפה", color: "#e74c3c", icon: "fas fa-fist-raised" },
+            control: { name: "בקרה למאבטח", color: "#3498db", icon: "fas fa-clipboard-check" },
+            refresh: { name: "רענון משטרתי", color: "#f39c12", icon: "fas fa-sync-alt" },
+            weapon: { name: "חידוש רישיון נשק", color: "#34495e", icon: "fas fa-gun" }
+        };
+        
+        // יצירת נתוני אימונים עם שנים שונות להיסטוריה
+        const sampleTrainings = [
+            // אימונים לשנת 2023
+            { id: 1, type: "tactical", date: "2023-03-15", location: "מתקן א", instructor: "רס\"ן אלי כהן", description: "אימון טקטי מתקדם", guards: [1, 4], completed: true },
+            { id: 2, type: "quarterly", date: "2023-06-20", location: "מתקן ב", instructor: "סנ\"צ דוד לוי", description: "אימון רבעוני שגרתי", guards: [2, 5], completed: true },
+            { id: 3, type: "seminar", date: "2023-09-25", location: "מרכז ההדרכה", instructor: "ד\"ר מיכל אברהם", description: "יום עיון בנושאי אבטחה", guards: [1, 2, 3, 4, 5, 6], completed: true },
+            { id: 4, type: "attack", date: "2023-11-05", location: "מתקן ג", instructor: "רס\"ן יוסי פלד", description: "תרגיל תקיפה משולב", guards: [3, 6], completed: true },
+            
+            // אימונים לשנת 2024
+            { id: 5, type: "control", date: "2024-01-10", location: "מתקן א", instructor: "רס\"ר שי מזרחי", description: "בקרה שנתית למאבטחים", guards: [1, 4], completed: true },
+            { id: 6, type: "refresh", date: "2024-02-15", location: "בסיס המשטרה", instructor: "ניצב משנה רוני כץ", description: "רענון הסמכות משטרתיות", guards: [2, 5], completed: false },
+            { id: 7, type: "weapon", date: "2024-03-20", location: "מתקן ה", instructor: "רס\"ר מאיר לוי", description: "חידוש רישיון נשק אישי", guards: [6], completed: false },
+            { id: 8, type: "tactical", date: "2024-05-18", location: "מתקן ב", instructor: "רס\"ן אלי כהן", description: "אימון טקטי מתקדם", guards: [2, 3, 5], completed: false },
+            
+            // אימונים עתידיים לשנת 2025
+            { id: 9, type: "quarterly", date: "2025-01-15", location: "מתקן ג", instructor: "סנ\"צ דוד לוי", description: "אימון רבעוני", guards: [1, 3, 6], completed: false },
+            { id: 10, type: "seminar", date: "2025-03-22", location: "מרכז ההדרכה", instructor: "ד\"ר מיכל אברהם", description: "יום עיון בנושאי בטיחות", guards: [1, 2, 4, 5], completed: false }
+        ];
+        
+        const sampleTrainingResults = {
+            1: { 1: "passed", 4: "attended" },
+            2: { 2: "failed", 5: "passed" },
+            3: { 1: "passed", 2: "passed", 3: "not_attended", 4: "attended", 5: "passed", 6: "attended" },
+            4: { 3: "passed", 6: "failed" },
+            5: { 1: "passed", 4: "attended" },
+            6: { 2: "pending", 5: "pending" },
+            7: { 6: "pending" },
+            8: { 2: "pending", 3: "pending", 5: "pending" },
+            9: { 1: "pending", 3: "pending", 6: "pending" },
+            10: { 1: "pending", 2: "pending", 4: "pending", 5: "pending" }
+        };
+        
+        // משתנים גלובליים
+        let guards = [];
+        let trainings = [];
+        let guardsTrainingResults = {};
+        let currentEditingTrainingId = null;
+        let pendingAssignment = null;
+        
+        // משתנים לשמירת מצב הסננים בלוח אימונים
+        let trainingFiltersState = {
+            year: null,
+            type: null,
+            status: 'incomplete'
+        };
+        
+        // אתחול המערכת
+        document.addEventListener('DOMContentLoaded', function() {
+            // בדיקת חיבור לאינטרנט
+            checkConnection();
+            
+            // טעינת נתונים
+            loadData();
+            
+            // ניהול לשוניות
+            const tabLinks = document.querySelectorAll('.nav-tabs li');
+            tabLinks.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // הסרת מחלקת active מכל הלשוניות
+                    tabLinks.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // הוספת מחלקת active ללשונית הנוכחית
+                    this.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // רענון נתונים בלשונית אם נדרש
+                    if (tabId === 'guards') {
+                        refreshGuardsTable();
+                        updateGuardsBadge();
+                    } else if (tabId === 'trainings') {
+                        // איפוס הסננים לדיפולט בעת מעבר לשונית
+                        resetTrainingFiltersToDefault();
+                        refreshTrainingsYearSelect();
+                        refreshTrainingsTypeSelect();
+                        refreshTrainingsGrid();
+                    } else if (tabId === 'history') {
+                        refreshHistoryYears();
+                        refreshHistoryContent();
+                    } else if (tabId === 'reports') {
+                        refreshReportsYearSelect();
+                        refreshCharts();
+                        updateDashboardStats();
+                    } else if (tabId === 'dashboard') {
+                        updateUpcomingTrainings();
+                        refreshLicenseRenewalAlerts();
+                        refreshGuardAssignments();
+                    }
+                });
+            });
+            
+            // כפתור התנתקות
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                alert('התנתקת מהמערכת בהצלחה');
+            });
+            
+            // ניהול מודלים
+            const addGuardBtn = document.getElementById('addGuardBtn');
+            const addGuardModal = document.getElementById('addGuardModal');
+            const closeGuardModal = document.getElementById('closeGuardModal');
+            const saveGuardBtn = document.getElementById('saveGuardBtn');
+            
+            const addTrainingBtn = document.getElementById('addTrainingBtn');
+            const addTrainingModal = document.getElementById('addTrainingModal');
+            const closeTrainingModal = document.getElementById('closeTrainingModal');
+            const saveTrainingBtn = document.getElementById('saveTrainingBtn');
+            const deleteTrainingBtn = document.getElementById('deleteTrainingBtn');
+            
+            const importGuardsBtn = document.getElementById('importGuardsBtn');
+            const importExcelModal = document.getElementById('importExcelModal');
+            const closeImportModal = document.getElementById('closeImportModal');
+            const excelFileInput = document.getElementById('excelFile');
+            const importDataBtn = document.getElementById('importDataBtn');
+            const exportGuardsBtn = document.getElementById('exportGuardsBtn');
+            
+            // ייבוא מאקסל
+            importGuardsBtn.addEventListener('click', function() {
+                importExcelModal.classList.add('active');
+                document.getElementById('importPreview').style.display = 'none';
+                importDataBtn.disabled = true;
+                excelFileInput.value = '';
+            });
+            
+            closeImportModal.addEventListener('click', function() {
+                importExcelModal.classList.remove('active');
+            });
+            
+            excelFileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    // תצוגה מקדימה
+                    if (jsonData.length > 0) {
+                        let previewHtml = '<table class="table"><thead><tr>';
+                        
+                        // כותרות
+                        const headers = jsonData[0];
+                        headers.forEach(header => {
+                            previewHtml += `<th>${header || ''}</th>`;
+                        });
+                        previewHtml += '</tr></thead><tbody>';
+                        
+                        // שורות (עד 5 שורות)
+                        const rowsToShow = Math.min(5, jsonData.length - 1);
+                        for (let i = 1; i <= rowsToShow; i++) {
+                            previewHtml += '<tr>';
+                            jsonData[i].forEach(cell => {
+                                previewHtml += `<td>${cell || ''}</td>`;
+                            });
+                            previewHtml += '</tr>';
+                        }
+                        
+                        previewHtml += '</tbody></table>';
+                        
+                        document.getElementById('previewTable').innerHTML = previewHtml;
+                        document.getElementById('importPreview').style.display = 'block';
+                        importDataBtn.disabled = false;
+                        
+                        // שמירת הנתונים לייבוא
+                        importDataBtn.dataset.importData = JSON.stringify(jsonData);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+            
+            importDataBtn.addEventListener('click', function() {
+                const importData = JSON.parse(this.dataset.importData);
+                if (!importData || importData.length < 2) {
+                    alert('אין נתונים לייבא');
+                    return;
+                }
+                
+                const headers = importData[0];
+                let importedCount = 0;
+                let skippedCount = 0;
+                
+                // התחלה משורה 1 (דילוג על כותרות)
+                for (let i = 1; i < importData.length; i++) {
+                    const row = importData[i];
+                    if (row.length < 3) continue;
+                    
+                    const name = row[0] ? String(row[0]).trim() : '';
+                    const idNumber = row[1] ? String(row[1]).trim() : '';
+                    const facility = row[2] ? String(row[2]).trim() : 'לא צוין';
+                    const weaponDate = row[3] ? String(row[3]).trim() : '';
+                    
+                    if (!name || !idNumber) {
+                        skippedCount++;
+                        continue;
+                    }
+                    
+                    // בדיקה אם תעודת הזהות כבר קיימת
+                    const existingGuard = guards.find(g => g.idNumber === idNumber);
+                    if (existingGuard) {
+                        skippedCount++;
+                        continue;
+                    }
+                    
+                    // יצירת מאבטח חדש
+                    const newGuard = {
+                        id: guards.length > 0 ? Math.max(...guards.map(g => g.id)) + 1 : 1,
+                        name: name,
+                        idNumber: idNumber,
+                        facility: facility,
+                        weaponLicenseDate: weaponDate || null
+                    };
+                    
+                    guards.push(newGuard);
+                    importedCount++;
+                }
+                
+                refreshGuardsTable();
+                updateGuardsBadge();
+                refreshLicenseRenewalAlerts();
+                refreshGuardAssignments();
+                saveDataToStorage();
+                importExcelModal.classList.remove('active');
+                
+                showAlert(`יובאו ${importedCount} מאבטחים בהצלחה. ${skippedCount} שורות דולגו.`, 'success');
+            });
+            
+            // ייצוא לאקסל
+            exportGuardsBtn.addEventListener('click', function() {
+                exportGuardsToExcel();
+            });
+            
+            // חיפוש מאבטחים
+            document.getElementById('guardSearch').addEventListener('input', function() {
+                refreshGuardsTable();
+            });
+            
+            addGuardBtn.addEventListener('click', function() {
+                addGuardModal.classList.add('active');
+                // איפוס הטופס
+                document.getElementById('guardFullName').value = '';
+                document.getElementById('guardId').value = '';
+                document.getElementById('guardFacility').value = 'מתקן א';
+                const today = new Date();
+                const nextYear = new Date(today);
+                nextYear.setFullYear(today.getFullYear() + 1);
+                document.getElementById('guardWeaponDate').value = nextYear.toISOString().split('T')[0];
+            });
+            
+            closeGuardModal.addEventListener('click', function() {
+                addGuardModal.classList.remove('active');
+            });
+            
+            saveGuardBtn.addEventListener('click', function() {
+                const name = document.getElementById('guardFullName').value;
+                const idNumber = document.getElementById('guardId').value;
+                const facility = document.getElementById('guardFacility').value;
+                const weaponDate = document.getElementById('guardWeaponDate').value;
+                
+                if (!name || !idNumber) {
+                    alert('נא למלא שם מלא ותעודת זהות');
+                    return;
+                }
+                
+                // בדיקה אם תעודת הזהות כבר קיימת
+                const existingGuard = guards.find(g => g.idNumber === idNumber);
+                if (existingGuard) {
+                    alert('קיים כבר מאבטח עם תעודת זהות זו');
+                    return;
+                }
+                
+                // יצירת מאבטח חדש
+                const newGuard = {
+                    id: guards.length > 0 ? Math.max(...guards.map(g => g.id)) + 1 : 1,
+                    name: name,
+                    idNumber: idNumber,
+                    facility: facility,
+                    weaponLicenseDate: weaponDate || null
+                };
+                
+                guards.push(newGuard);
+                refreshGuardsTable();
+                updateGuardsBadge();
+                refreshLicenseRenewalAlerts();
+                refreshGuardAssignments();
+                saveDataToStorage();
+                addGuardModal.classList.remove('active');
+                
+                showAlert('מאבטח נוסף בהצלחה למערכת', 'success');
+            });
+            
+            // פתיחת מודל הוספת אימון
+            addTrainingBtn.addEventListener('click', function() {
+                openTrainingModal(null);
+            });
+            
+            closeTrainingModal.addEventListener('click', function() {
+                addTrainingModal.classList.remove('active');
+                currentEditingTrainingId = null;
+                document.getElementById('deleteTrainingBtn').style.display = 'none';
+                document.getElementById('trainingModalTitle').textContent = 'הוספת אימון חדש';
+            });
+            
+            // שמירת אימון חדש או עדכון אימון קיים
+            saveTrainingBtn.addEventListener('click', function() {
+                const type = document.getElementById('newTrainingType').value;
+                const date = document.getElementById('newTrainingDate').value;
+                const location = document.getElementById('newTrainingLocation').value;
+                const instructor = document.getElementById('newTrainingInstructor').value;
+                const description = document.getElementById('newTrainingDescription').value;
+                
+                if (!date || !location) {
+                    alert('נא למלא תאריך ומיקום');
+                    return;
+                }
+                
+                // בחירת מאבטחים שנבחרו
+                const selectedCheckboxes = document.querySelectorAll('.guard-training-checkbox:checked');
+                const selectedGuardIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+                
+                if (currentEditingTrainingId) {
+                    // עדכון אימון קיים
+                    const trainingIndex = trainings.findIndex(t => t.id === currentEditingTrainingId);
+                    if (trainingIndex !== -1) {
+                        trainings[trainingIndex] = {
+                            ...trainings[trainingIndex],
+                            type: type,
+                            date: date,
+                            location: location,
+                            instructor: instructor || "לא צוין",
+                            description: description || "לא צוין",
+                            guards: selectedGuardIds
+                        };
+                        
+                        showAlert('אימון עודכן בהצלחה', 'success');
+                    }
+                } else {
+                    // יצירת אימון חדש
+                    const newTraining = {
+                        id: trainings.length > 0 ? Math.max(...trainings.map(t => t.id)) + 1 : 1,
+                        type: type,
+                        date: date,
+                        location: location,
+                        instructor: instructor || "לא צוין",
+                        description: description || "לא צוין",
+                        guards: selectedGuardIds,
+                        completed: false
+                    };
+                    
+                    trainings.push(newTraining);
+                    
+                    // אתחול תוצאות האימון למאבטחים המשובצים
+                    guardsTrainingResults[newTraining.id] = {};
+                    selectedGuardIds.forEach(guardId => {
+                        guardsTrainingResults[newTraining.id][guardId] = "pending";
+                    });
+                    
+                    showAlert('אימון נוסף בהצלחה למערכת', 'success');
+                }
+                
+                refreshAllViews();
+                addTrainingModal.classList.remove('active');
+                currentEditingTrainingId = null;
+                document.getElementById('deleteTrainingBtn').style.display = 'none';
+                document.getElementById('trainingModalTitle').textContent = 'הוספת אימון חדש';
+            });
+            
+            // מחיקת אימון
+            deleteTrainingBtn.addEventListener('click', function() {
+                if (currentEditingTrainingId && confirm('האם אתה בטוח שברצונך למחוק אימון זה?')) {
+                    trainings = trainings.filter(t => t.id !== currentEditingTrainingId);
+                    delete guardsTrainingResults[currentEditingTrainingId];
+                    
+                    refreshAllViews();
+                    addTrainingModal.classList.remove('active');
+                    currentEditingTrainingId = null;
+                    
+                    showAlert('אימון נמחק בהצלחה', 'success');
+                }
+            });
+            
+            // ייצוא היסטוריה
+            document.getElementById('exportHistoryBtn').addEventListener('click', function() {
+                exportHistoryToExcel();
+            });
+            
+            // סינון שנה בלוח אימונים - שומר מצב
+            document.getElementById('trainingsYearSelect').addEventListener('change', function() {
+                trainingFiltersState.year = this.value;
+                refreshTrainingsGrid();
+            });
+            
+            // סינון סוג אימון בלוח אימונים - שומר מצב
+            document.getElementById('trainingsTypeSelect').addEventListener('change', function() {
+                trainingFiltersState.type = this.value;
+                refreshTrainingsGrid();
+            });
+            
+            // סינון אימונים לפי סטטוס - שומר מצב
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    trainingFiltersState.status = this.dataset.filter;
+                    refreshTrainingsGrid();
+                });
+            });
+            
+            // סינון שנה בדוחות
+            document.getElementById('reportsYearSelect').addEventListener('change', function() {
+                refreshCharts();
+            });
+            
+            document.getElementById('reportPeriod').addEventListener('change', function() {
+                refreshCharts();
+            });
+            
+            // סינון שנה בהיסטוריה
+            document.getElementById('historyYearSelect').addEventListener('change', function() {
+                refreshHistoryContent();
+            });
+            
+            // הגדרות - גיבוי ושחזור
+            document.getElementById('backupNowBtn').addEventListener('click', function() {
+                saveDataToStorage();
+                showAlert('גיבוי בוצע בהצלחה', 'success');
+            });
+            
+            document.getElementById('restoreBackupBtn').addEventListener('click', function() {
+                if (confirm('האם לשחזר את הגיבוי האחרון? כל הנתונים הנוכחיים יאבדו.')) {
+                    loadData(true);
+                }
+            });
+            
+            // שמירת הגדרות
+            document.getElementById('saveSettingsBtn').addEventListener('click', function() {
+                showAlert('הגדרות נשמרו בהצלחה', 'success');
+                saveDataToStorage();
+            });
+            
+            // רענון טבלת שיבוץ מאבטחים
+            document.getElementById('refreshAssignmentsBtn').addEventListener('click', function() {
+                refreshGuardAssignments();
+            });
+            
+            // שינוי סינונים בטבלת שיבוץ
+            document.getElementById('guardAssignmentYear').addEventListener('change', function() {
+                refreshGuardAssignments();
+            });
+            
+            document.getElementById('guardAssignmentMonth').addEventListener('change', function() {
+                refreshGuardAssignments();
+            });
+            
+            document.getElementById('guardAssignmentType').addEventListener('change', function() {
+                refreshGuardAssignments();
+            });
+            
+            // מודל בחירת אימון
+            const selectTrainingModal = document.getElementById('selectTrainingModal');
+            const closeSelectTrainingModal = document.getElementById('closeSelectTrainingModal');
+            const createNewTrainingBtn = document.getElementById('createNewTrainingFromAssignmentBtn');
+            
+            closeSelectTrainingModal.addEventListener('click', function() {
+                selectTrainingModal.classList.remove('active');
+                pendingAssignment = null;
+            });
+            
+            createNewTrainingBtn.addEventListener('click', function() {
+                if (pendingAssignment) {
+                    createNewTrainingFromAssignment(
+                        pendingAssignment.guardId, 
+                        pendingAssignment.trainingType, 
+                        pendingAssignment.month, 
+                        pendingAssignment.year,
+                        pendingAssignment.location || '',
+                        pendingAssignment.instructor || '',
+                        pendingAssignment.description || ''
+                    );
+                    selectTrainingModal.classList.remove('active');
+                    pendingAssignment = null;
+                }
+            });
+            
+            // הגדרת תאריכים ברירת מחדל
+            const today = new Date();
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            document.getElementById('newTrainingDate').value = nextWeek.toISOString().split('T')[0];
+            
+            // גיבוי אוטומטי כל 5 דקות
+            setInterval(() => {
+                if (document.getElementById('autoBackup')?.checked) {
+                    saveDataToStorage();
+                }
+            }, 5 * 60 * 1000);
+        });
+        
+        // פונקציה לאיפוס סנני לוח אימונים לדיפולט
+        function resetTrainingFiltersToDefault() {
+            trainingFiltersState = {
+                year: null,
+                type: null,
+                status: 'incomplete'
+            };
+            
+            // איפוס הכפתורים
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === 'incomplete') {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        // פונקציה לרענון כל התצוגות
+        function refreshAllViews() {
+            refreshGuardsTable();
+            updateGuardsBadge();
+            refreshTrainingsYearSelect();
+            refreshTrainingsTypeSelect();
+            refreshTrainingsGrid();
+            refreshReportsYearSelect();
+            refreshCharts();
+            updateDashboardStats();
+            refreshLicenseRenewalAlerts();
+            refreshHistoryYears();
+            refreshHistoryContent();
+            refreshGuardAssignments();
+            updateUpcomingTrainings();
+            saveDataToStorage();
+        }
+        
+        // פונקציות עזר
+        function refreshGuardsTable() {
+            const tbody = document.getElementById('guardsTableBody');
+            const searchQuery = document.getElementById('guardSearch').value.toLowerCase();
+            
+            tbody.innerHTML = '';
+            
+            let filteredGuards = guards;
+            
+            if (searchQuery) {
+                filteredGuards = guards.filter(guard => 
+                    guard.name.toLowerCase().includes(searchQuery) ||
+                    guard.idNumber.includes(searchQuery) ||
+                    guard.facility.toLowerCase().includes(searchQuery)
+                );
+            }
+            
+            filteredGuards.forEach(guard => {
+                const lastTrainingDates = {};
+                
+                trainings.forEach(training => {
+                    if (training.guards && training.guards.includes(guard.id)) {
+                        const result = guardsTrainingResults[training.id]?.[guard.id];
+                        if (result && result !== "not_attended" && result !== "pending") {
+                            const trainingDate = new Date(training.date);
+                            const currentLastDate = lastTrainingDates[training.type] ? new Date(lastTrainingDates[training.type]) : null;
+                            
+                            if (!currentLastDate || trainingDate > currentLastDate) {
+                                lastTrainingDates[training.type] = training.date;
+                            }
+                        }
+                    }
+                });
+                
+                const weaponLicenseDate = guard.weaponLicenseDate;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${guard.name}</td>
+                    <td>${guard.idNumber}</td>
+                    <td>${guard.facility}</td>
+                    <td>${lastTrainingDates.tactical ? formatDate(lastTrainingDates.tactical) : '-'}</td>
+                    <td>${lastTrainingDates.quarterly ? formatDate(lastTrainingDates.quarterly) : '-'}</td>
+                    <td>${lastTrainingDates.seminar ? formatDate(lastTrainingDates.seminar) : '-'}</td>
+                    <td>${lastTrainingDates.attack ? formatDate(lastTrainingDates.attack) : '-'}</td>
+                    <td>${lastTrainingDates.control ? formatDate(lastTrainingDates.control) : '-'}</td>
+                    <td>${lastTrainingDates.refresh ? formatDate(lastTrainingDates.refresh) : '-'}</td>
+                    <td>${weaponLicenseDate ? formatDate(weaponLicenseDate) : '-'}</td>
+                    <td>
+                        <button class="btn" onclick="editGuard(${guard.id})" style="padding: 5px 10px; font-size: 12px; margin-left: 5px;">ערוך</button>
+                        <button class="btn btn-danger" onclick="deleteGuard(${guard.id})" style="padding: 5px 10px; font-size: 12px;">מחק</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function updateGuardsBadge() {
+            document.getElementById('activeGuardsBadge').textContent = `${guards.length} מאבטחים פעילים`;
+        }
+        
+        function refreshLicenseRenewalAlerts() {
+            const container = document.getElementById('licenseRenewalAlerts');
+            container.innerHTML = '';
+            
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(today.getMonth() + 1);
+            
+            const expiringSoon = [];
+            const expired = [];
+            
+            guards.forEach(guard => {
+                if (guard.weaponLicenseDate) {
+                    const licenseDate = new Date(guard.weaponLicenseDate);
+                    
+                    if (licenseDate < today) {
+                        expired.push({
+                            name: guard.name,
+                            date: guard.weaponLicenseDate,
+                            daysOverdue: Math.floor((today - licenseDate) / (1000 * 60 * 60 * 24))
+                        });
+                    } else if (licenseDate <= nextMonth) {
+                        const daysUntilExpiry = Math.floor((licenseDate - today) / (1000 * 60 * 60 * 24));
+                        expiringSoon.push({
+                            name: guard.name,
+                            date: guard.weaponLicenseDate,
+                            daysLeft: daysUntilExpiry
+                        });
+                    }
+                }
+            });
+            
+            if (expired.length > 0 || expiringSoon.length > 0) {
+                let alertHtml = '<div class="license-renewal-alert">';
+                
+                if (expired.length > 0) {
+                    alertHtml += '<h4><i class="fas fa-exclamation-circle"></i> רישיונות נשק שפג תוקפם:</h4>';
+                    alertHtml += '<ul class="license-renewal-list">';
+                    expired.forEach(guard => {
+                        alertHtml += `<li class="license-renewal-item"><span>${guard.name}</span> <span style="color: #e74c3c;">פג תוקף לפני ${guard.daysOverdue} ימים (${formatDate(guard.date)})</span></li>`;
+                    });
+                    alertHtml += '</ul>';
+                }
+                
+                if (expiringSoon.length > 0) {
+                    if (expired.length > 0) alertHtml += '<hr style="margin: 15px 0;">';
+                    alertHtml += '<h4><i class="fas fa-exclamation-triangle"></i> רישיונות נשק שפג תוקפם בחודש הקרוב:</h4>';
+                    alertHtml += '<ul class="license-renewal-list">';
+                    expiringSoon.forEach(guard => {
+                        alertHtml += `<li class="license-renewal-item"><span>${guard.name}</span> <span style="color: #f39c12;">פג תוקף בעוד ${guard.daysLeft} ימים (${formatDate(guard.date)})</span></li>`;
+                    });
+                    alertHtml += '</ul>';
+                }
+                
+                alertHtml += '</div>';
+                container.innerHTML = alertHtml;
+            }
+        }
+        
+        function refreshTrainingsYearSelect() {
+            const yearSelect = document.getElementById('trainingsYearSelect');
+            yearSelect.innerHTML = '';
+            
+            const yearsSet = new Set();
+            trainings.forEach(training => {
+                const year = new Date(training.date).getFullYear();
+                yearsSet.add(year);
+            });
+            
+            const years = Array.from(yearsSet).sort((a, b) => b - a);
+            
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'כל השנים';
+            yearSelect.appendChild(allOption);
+            
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            });
+            
+            // שחזור מצב הסנן אם קיים
+            if (trainingFiltersState.year) {
+                yearSelect.value = trainingFiltersState.year;
+            } else {
+                const currentYear = new Date().getFullYear();
+                if (years.includes(currentYear)) {
+                    yearSelect.value = currentYear;
+                    trainingFiltersState.year = currentYear;
+                } else if (years.length > 0) {
+                    yearSelect.value = years[0];
+                    trainingFiltersState.year = years[0];
+                } else {
+                    yearSelect.value = 'all';
+                    trainingFiltersState.year = 'all';
+                }
+            }
+        }
+        
+        function refreshTrainingsTypeSelect() {
+            const typeSelect = document.getElementById('trainingsTypeSelect');
+            typeSelect.innerHTML = '';
+            
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'כל סוגי האימונים';
+            typeSelect.appendChild(allOption);
+            
+            Object.entries(trainingTypes).forEach(([key, type]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = type.name;
+                typeSelect.appendChild(option);
+            });
+            
+            // שחזור מצב הסנן אם קיים
+            if (trainingFiltersState.type) {
+                typeSelect.value = trainingFiltersState.type;
+            } else {
+                typeSelect.value = 'all';
+                trainingFiltersState.type = 'all';
+            }
+        }
+        
+        function refreshTrainingsGrid() {
+            const trainingsGrid = document.getElementById('trainingsGrid');
+            const selectedYear = document.getElementById('trainingsYearSelect').value;
+            const selectedType = document.getElementById('trainingsTypeSelect').value;
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            
+            // שמירת מצב הסננים
+            trainingFiltersState.year = selectedYear;
+            trainingFiltersState.type = selectedType;
+            trainingFiltersState.status = activeFilter;
+            
+            let filteredTrainings = [];
+            if (selectedYear === 'all') {
+                filteredTrainings = trainings;
+            } else {
+                filteredTrainings = trainings.filter(training => {
+                    const year = new Date(training.date).getFullYear();
+                    return year == selectedYear;
+                });
+            }
+            
+            if (selectedType !== 'all') {
+                filteredTrainings = filteredTrainings.filter(t => t.type === selectedType);
+            }
+            
+            if (activeFilter === 'completed') {
+                filteredTrainings = filteredTrainings.filter(t => t.completed);
+            } else if (activeFilter === 'incomplete') {
+                filteredTrainings = filteredTrainings.filter(t => !t.completed);
+            }
+            
+            if (filteredTrainings.length === 0) {
+                trainingsGrid.innerHTML = '<div class="alert alert-success">לא נמצאו אימונים לפי הסינון שנבחר</div>';
+                return;
+            }
+            
+            trainingsGrid.innerHTML = '';
+            
+            filteredTrainings.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            filteredTrainings.forEach(training => {
+                const trainingType = trainingTypes[training.type];
+                const trainingDate = new Date(training.date);
+                
+                let guardsHtml = '';
+                if (training.guards && training.guards.length > 0) {
+                    training.guards.forEach(guardId => {
+                        const guard = guards.find(g => g.id === guardId);
+                        if (guard) {
+                            const status = guardsTrainingResults[training.id]?.[guardId] || "pending";
+                            const statusText = getStatusText(status);
+                            const statusClass = getStatusClass(status);
+                            
+                            guardsHtml += `
+                                <div class="guard-item">
+                                    <div>${guard.name}</div>
+                                    <div class="guard-status">
+                                        <select class="status-select ${statusClass}" onchange="updateTrainingResult(${training.id}, ${guardId}, this.value, event)" data-guard-id="${guardId}" data-training-id="${training.id}" ${training.completed ? 'disabled' : ''}>
+                                            <option value="pending" ${status === "pending" ? "selected" : ""}>ממתין</option>
+                                            <option value="attended" ${status === "attended" ? "selected" : ""}>השתתף</option>
+                                            <option value="passed" ${status === "passed" ? "selected" : ""}>עבר</option>
+                                            <option value="failed" ${status === "failed" ? "selected" : ""}>נכשל</option>
+                                            <option value="not_attended" ${status === "not_attended" ? "selected" : ""}>לא השתתף</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                } else {
+                    guardsHtml = '<div class="alert alert-danger">לא שובצו מאבטחים לאימון זה</div>';
+                }
+                
+                const trainingCard = document.createElement('div');
+                trainingCard.className = `training-card ${training.type} ${training.completed ? 'completed' : ''}`;
+                trainingCard.innerHTML = `
+                    <div class="training-header">
+                        <h3 class="training-title">${trainingType.name} ${training.completed ? '<i class="fas fa-check-circle" style="color: #27ae60; margin-right: 5px;"></i>' : ''}</h3>
+                        <div class="training-icon">
+                            <i class="${trainingType.icon}" style="color: ${training.completed ? '#27ae60' : trainingType.color};"></i>
+                        </div>
+                    </div>
+                    <div class="training-body">
+                        <div class="training-date"><i class="fas fa-calendar-alt"></i> ${formatDate(training.date)}</div>
+                        <div class="training-location"><i class="fas fa-map-marker-alt"></i> ${training.location}</div>
+                        <div><i class="fas fa-user-tie"></i> ${training.instructor}</div>
+                        <p>${training.description}</p>
+                        <div class="guard-status" style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="completed_${training.id}" ${training.completed ? 'checked' : ''} onchange="toggleTrainingCompletion(${training.id}, this.checked)">
+                                <span>האימון הסתיים</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="guards-list">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4>מאבטחים משובצים (${training.guards ? training.guards.length : 0})</h4>
+                            <button class="btn" onclick="openTrainingModal(${training.id})" style="padding: 5px 10px; font-size: 12px;">ערוך אימון</button>
+                        </div>
+                        ${guardsHtml}
+                    </div>
+                `;
+                
+                trainingsGrid.appendChild(trainingCard);
+            });
+        }
+        
+        function refreshGuardsSelectionForTraining(trainingId = null) {
+            const guardsSelectionContainer = document.getElementById('guardsSelectionForTraining');
+            guardsSelectionContainer.innerHTML = '';
+            
+            let selectedGuardIds = [];
+            if (trainingId) {
+                const training = trainings.find(t => t.id === trainingId);
+                if (training && training.guards) {
+                    selectedGuardIds = training.guards;
+                }
+            }
+            
+            const facilities = [...new Set(guards.map(g => g.facility))];
+            
+            facilities.forEach(facility => {
+                const facilityGuards = guards.filter(g => g.facility === facility);
+                
+                const facilitySection = document.createElement('div');
+                facilitySection.style.marginBottom = '15px';
+                facilitySection.innerHTML = `
+                    <h5 style="margin-bottom: 8px; color: #2c3e50;">${facility}</h5>
+                    ${facilityGuards.map(guard => `
+                        <div class="guard-selection-item">
+                            <label>
+                                <input type="checkbox" class="guard-training-checkbox" value="${guard.id}" ${selectedGuardIds.includes(guard.id) ? 'checked' : ''}>
+                                ${guard.name} (${guard.idNumber})
+                            </label>
+                        </div>
+                    `).join('')}
+                `;
+                
+                guardsSelectionContainer.appendChild(facilitySection);
+            });
+        }
+        
+        function refreshHistoryYears() {
+            const yearSelect = document.getElementById('historyYearSelect');
+            yearSelect.innerHTML = '';
+            
+            const yearsSet = new Set();
+            trainings.forEach(training => {
+                if (training.completed) {
+                    const year = new Date(training.date).getFullYear();
+                    yearsSet.add(year);
+                }
+            });
+            
+            const years = Array.from(yearsSet).sort((a, b) => b - a);
+            
+            if (years.length === 0) {
+                const option = document.createElement('option');
+                option.value = 'all';
+                option.textContent = 'אין אימונים שהסתיימו';
+                yearSelect.appendChild(option);
+                return;
+            }
+            
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'כל השנים';
+            yearSelect.appendChild(allOption);
+            
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            });
+            
+            const currentYear = new Date().getFullYear();
+            if (years.includes(currentYear)) {
+                yearSelect.value = currentYear;
+            } else if (years.length > 0) {
+                yearSelect.value = years[0];
+            }
+        }
+        
+        function refreshHistoryContent() {
+            const historyContent = document.getElementById('historyContent');
+            const selectedYear = document.getElementById('historyYearSelect').value;
+            
+            let filteredTrainings = trainings.filter(training => training.completed);
+            
+            if (selectedYear !== 'all') {
+                filteredTrainings = filteredTrainings.filter(training => {
+                    const year = new Date(training.date).getFullYear();
+                    return year == selectedYear;
+                });
+            }
+            
+            filteredTrainings.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (filteredTrainings.length === 0) {
+                historyContent.innerHTML = '<div class="alert alert-success">לא נמצאו אימונים שהסתיימו לשנה הנבחרת</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            filteredTrainings.forEach(training => {
+                const trainingType = trainingTypes[training.type];
+                
+                let participatingGuards = [];
+                let passedCount = 0;
+                let failedCount = 0;
+                let attendedCount = 0;
+                
+                if (training.guards && guardsTrainingResults[training.id]) {
+                    training.guards.forEach(guardId => {
+                        const guard = guards.find(g => g.id === guardId);
+                        const result = guardsTrainingResults[training.id][guardId];
+                        if (guard && result && result !== "not_attended" && result !== "pending") {
+                            participatingGuards.push({
+                                name: guard.name,
+                                result: result
+                            });
+                            
+                            if (result === "passed") passedCount++;
+                            else if (result === "failed") failedCount++;
+                            else if (result === "attended") attendedCount++;
+                        }
+                    });
+                }
+                
+                html += `
+                    <div class="card" style="margin-bottom: 15px;">
+                        <div class="card-header">
+                            <h3 class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>${trainingType.name} - ${formatDate(training.date)}</span>
+                                <span style="display: flex; gap: 10px; align-items: center;">
+                                    <span style="font-size: 14px; color: #7f8c8d;">
+                                        ${participatingGuards.length} משתתפים
+                                    </span>
+                                    <button class="btn btn-danger" onclick="deleteHistoryTraining(${training.id})" style="padding: 5px 10px; font-size: 12px;">
+                                        <i class="fas fa-trash"></i> מחק אימון
+                                    </button>
+                                </span>
+                            </h3>
+                        </div>
+                        <div style="padding: 15px;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 15px;">
+                                <div><strong>מיקום:</strong> ${training.location}</div>
+                                <div><strong>מדריך:</strong> ${training.instructor}</div>
+                            </div>
+                            <p><strong>תיאור:</strong> ${training.description}</p>
+                            
+                            <div style="display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap;">
+                                <div class="stats-badge" style="background-color: #27ae60;">${passedCount} עברו</div>
+                                <div class="stats-badge" style="background-color: #e74c3c;">${failedCount} נכשלו</div>
+                                <div class="stats-badge" style="background-color: #3498db;">${attendedCount} השתתפו</div>
+                            </div>
+                            
+                            <p><strong>מאבטחים שהשתתפו:</strong></p>
+                            <div style="margin-top: 10px;">
+                `;
+                
+                if (participatingGuards.length > 0) {
+                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;">';
+                    participatingGuards.forEach(guard => {
+                        const resultText = getStatusText(guard.result);
+                        const resultColor = guard.result === "passed" ? "#27ae60" : 
+                                           guard.result === "failed" ? "#e74c3c" : "#3498db";
+                        html += `
+                            <div style="padding: 8px; background-color: #f8f9fa; border-radius: 4px; border-right: 3px solid ${resultColor};">
+                                <div style="font-weight: 600;">${guard.name}</div>
+                                <div style="color: ${resultColor}; font-size: 12px;">${resultText}</div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p>אין מאבטחים שהשתתפו באימון זה</p>';
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            
+            historyContent.innerHTML = html;
+        }
+        
+        // פונקציה למחיקת אימון מהיסטוריה
+        window.deleteHistoryTraining = function(trainingId) {
+            if (confirm('האם אתה בטוח שברצונך למחוק אימון זה מההיסטוריה?')) {
+                trainings = trainings.filter(t => t.id !== trainingId);
+                delete guardsTrainingResults[trainingId];
+                
+                refreshAllViews();
+                showAlert('האימון נמחק בהצלחה מההיסטוריה', 'success');
+            }
+        };
+        
+        function refreshReportsYearSelect() {
+            const yearSelect = document.getElementById('reportsYearSelect');
+            yearSelect.innerHTML = '';
+            
+            const yearsSet = new Set();
+            trainings.forEach(training => {
+                const year = new Date(training.date).getFullYear();
+                yearsSet.add(year);
+            });
+            
+            const years = Array.from(yearsSet).sort((a, b) => b - a);
+            
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'כל השנים';
+            yearSelect.appendChild(allOption);
+            
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            });
+            
+            const currentYear = new Date().getFullYear();
+            if (years.includes(currentYear)) {
+                yearSelect.value = currentYear;
+            } else if (years.length > 0) {
+                yearSelect.value = years[0];
+            } else {
+                yearSelect.value = 'all';
+            }
+        }
+        
+        function updateDashboardStats() {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const yearlyTrainings = trainings.filter(t => new Date(t.date).getFullYear() === currentYear);
+            document.getElementById('plannedTrainingsCount').textContent = yearlyTrainings.length;
+            
+            const completedTrainings = trainings.filter(t => t.completed).length;
+            document.getElementById('completedTrainingsCount').textContent = completedTrainings;
+        }
+        
+        function updateUpcomingTrainings() {
+            const upcomingTrainingsContainer = document.getElementById('upcomingTrainings');
+            const today = new Date();
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(today.getMonth() + 1);
+            
+            const upcomingTrainings = trainings
+                .filter(t => {
+                    const trainingDate = new Date(t.date);
+                    return trainingDate >= today && trainingDate <= nextMonth && !t.completed;
+                })
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(0, 5);
+            
+            if (upcomingTrainings.length === 0) {
+                upcomingTrainingsContainer.innerHTML = '<div class="alert alert-success">אין אימונים קרובים בחודש הקרוב</div>';
+                return;
+            }
+            
+            let html = '<table><thead><tr><th>סוג אימון</th><th>תאריך</th><th>מיקום</th><th>משובצים</th><th>סטטוס</th></tr></thead><tbody>';
+            
+            upcomingTrainings.forEach(training => {
+                const trainingType = trainingTypes[training.type];
+                html += `
+                    <tr>
+                        <td><i class="${trainingType.icon}" style="color: ${trainingType.color}; margin-left: 5px;"></i> ${trainingType.name}</td>
+                        <td>${formatDate(training.date)}</td>
+                        <td>${training.location}</td>
+                        <td>${training.guards ? training.guards.length : 0} מאבטחים</td>
+                        <td>${training.completed ? '<span style="color: #27ae60;">הסתיים</span>' : '<span style="color: #f39c12;">טרם הושלם</span>'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            upcomingTrainingsContainer.innerHTML = html;
+        }
+        
+        function refreshCharts() {
+            const selectedYear = document.getElementById('reportsYearSelect').value;
+            
+            let filteredTrainings = [];
+            if (selectedYear === 'all') {
+                filteredTrainings = trainings;
+            } else {
+                filteredTrainings = trainings.filter(training => {
+                    const year = new Date(training.date).getFullYear();
+                    return year == selectedYear;
+                });
+            }
+            
+            // 1. גרף השתתפות באימונים לפי סוג
+            const trainingTypeCtx = document.getElementById('trainingTypeChart').getContext('2d');
+            
+            const trainingTypeCounts = {};
+            Object.keys(trainingTypes).forEach(type => {
+                trainingTypeCounts[type] = filteredTrainings.filter(t => t.type === type).length;
+            });
+            
+            if (window.trainingTypeChartInstance) {
+                window.trainingTypeChartInstance.destroy();
+            }
+            
+            window.trainingTypeChartInstance = new Chart(trainingTypeCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.values(trainingTypes).map(t => t.name),
+                    datasets: [{
+                        data: Object.values(trainingTypeCounts),
+                        backgroundColor: Object.values(trainingTypes).map(t => t.color),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+            
+            // 2. גרף הצלחה באימונים לפי מתקן
+            const facilitySuccessCtx = document.getElementById('facilitySuccessChart').getContext('2d');
+            
+            const facilities = [...new Set(guards.map(g => g.facility))];
+            const facilityStats = {};
+            
+            facilities.forEach(facility => {
+                const facilityGuards = guards.filter(g => g.facility === facility);
+                let passCount = 0;
+                let failCount = 0;
+                let attendedCount = 0;
+                let notAttendedCount = 0;
+                
+                facilityGuards.forEach(guard => {
+                    Object.keys(guardsTrainingResults).forEach(trainingId => {
+                        const training = trainings.find(t => t.id == trainingId);
+                        if (training) {
+                            const trainingYear = new Date(training.date).getFullYear();
+                            if (selectedYear !== 'all' && trainingYear != selectedYear) {
+                                return;
+                            }
+                            
+                            const result = guardsTrainingResults[trainingId][guard.id];
+                            if (result === "passed") passCount++;
+                            else if (result === "failed") failCount++;
+                            else if (result === "attended") attendedCount++;
+                            else if (result === "not_attended") notAttendedCount++;
+                        }
+                    });
+                });
+                
+                facilityStats[facility] = { 
+                    passed: passCount, 
+                    failed: failCount, 
+                    attended: attendedCount,
+                    not_attended: notAttendedCount
+                };
+            });
+            
+            if (window.facilitySuccessChartInstance) {
+                window.facilitySuccessChartInstance.destroy();
+            }
+            
+            window.facilitySuccessChartInstance = new Chart(facilitySuccessCtx, {
+                type: 'bar',
+                data: {
+                    labels: facilities,
+                    datasets: [
+                        {
+                            label: 'עבר',
+                            data: facilities.map(f => facilityStats[f]?.passed || 0),
+                            backgroundColor: '#27ae60'
+                        },
+                        {
+                            label: 'נכשל',
+                            data: facilities.map(f => facilityStats[f]?.failed || 0),
+                            backgroundColor: '#e74c3c'
+                        },
+                        {
+                            label: 'השתתף',
+                            data: facilities.map(f => facilityStats[f]?.attended || 0),
+                            backgroundColor: '#3498db'
+                        },
+                        {
+                            label: 'לא השתתף',
+                            data: facilities.map(f => facilityStats[f]?.not_attended || 0),
+                            backgroundColor: '#7f8c8d'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // 3. גרף סטטוס אימונים שנתי
+            const yearlyStatusCtx = document.getElementById('yearlyStatusChart').getContext('2d');
+            
+            const months = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+            const monthlyTrainings = Array(12).fill(0);
+            
+            filteredTrainings.forEach(training => {
+                const month = new Date(training.date).getMonth();
+                monthlyTrainings[month]++;
+            });
+            
+            if (window.yearlyStatusChartInstance) {
+                window.yearlyStatusChartInstance.destroy();
+            }
+            
+            window.yearlyStatusChartInstance = new Chart(yearlyStatusCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'מספר אימונים',
+                        data: monthlyTrainings,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // 4. גרף אימונים קרובים לפי חודש
+            const upcomingTrainingsCtx = document.getElementById('upcomingTrainingsChart').getContext('2d');
+            
+            const today = new Date();
+            const upcomingMonths = [];
+            const upcomingCounts = [];
+            
+            for (let i = 0; i < 6; i++) {
+                const month = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                upcomingMonths.push(months[month.getMonth()] + ' ' + month.getFullYear());
+                
+                const nextMonth = new Date(today.getFullYear(), today.getMonth() + i + 1, 1);
+                const monthTrainings = filteredTrainings.filter(t => {
+                    const trainingDate = new Date(t.date);
+                    return trainingDate >= month && trainingDate < nextMonth;
+                }).length;
+                
+                upcomingCounts.push(monthTrainings);
+            }
+            
+            if (window.upcomingTrainingsChartInstance) {
+                window.upcomingTrainingsChartInstance.destroy();
+            }
+            
+            window.upcomingTrainingsChartInstance = new Chart(upcomingTrainingsCtx, {
+                type: 'bar',
+                data: {
+                    labels: upcomingMonths,
+                    datasets: [{
+                        label: 'אימונים מתוכננים',
+                        data: upcomingCounts,
+                        backgroundColor: '#9b59b6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // פונקציות לטבלת שיבוץ מאבטחים
+        function refreshGuardAssignments() {
+            const year = document.getElementById('guardAssignmentYear').value;
+            const month = document.getElementById('guardAssignmentMonth').value;
+            const type = document.getElementById('guardAssignmentType').value;
+            
+            const tbody = document.getElementById('guardAssignmentsTableBody');
+            tbody.innerHTML = '';
+            
+            const yearSelect = document.getElementById('guardAssignmentYear');
+            if (yearSelect.children.length === 0) {
+                const currentYear = new Date().getFullYear();
+                const nextYear = currentYear + 1;
+                
+                const years = [currentYear - 1, currentYear, nextYear];
+                years.forEach(y => {
+                    const option = document.createElement('option');
+                    option.value = y;
+                    option.textContent = y;
+                    if (y === currentYear) option.selected = true;
+                    yearSelect.appendChild(option);
+                });
+            }
+            
+            const needsTraining = (guard, trainingType, referenceDate) => {
+                const today = new Date();
+                const refDate = referenceDate ? new Date(referenceDate) : today;
+                
+                let lastTrainingDate = null;
+                let lastTrainingResult = null;
+                
+                // בדיקה אם המאבטח כבר משובץ לאימון עתידי מסוג זה
+                let alreadyAssigned = false;
+                let assignedTrainingId = null;
+                
+                trainings.forEach(training => {
+                    if (training.type === trainingType && training.guards && training.guards.includes(guard.id) && !training.completed) {
+                        const trainingDate = new Date(training.date);
+                        const trainingMonth = trainingDate.getMonth() + 1;
+                        const trainingYear = trainingDate.getFullYear();
+                        
+                        if (trainingYear == year && (month === 'all' || trainingMonth == month)) {
+                            alreadyAssigned = true;
+                            assignedTrainingId = training.id;
+                        }
+                    }
+                    
+                    if (training.type === trainingType && training.guards && training.guards.includes(guard.id) && training.completed) {
+                        const result = guardsTrainingResults[training.id]?.[guard.id];
+                        if (result && result !== "not_attended" && result !== "pending") {
+                            const trainingDate = new Date(training.date);
+                            if (!lastTrainingDate || trainingDate > lastTrainingDate) {
+                                lastTrainingDate = trainingDate;
+                                lastTrainingResult = result;
+                            }
+                        }
+                    }
+                });
+                
+                if (alreadyAssigned) {
+                    return { 
+                        needed: false, 
+                        lastDate: lastTrainingDate,
+                        monthsSince: 0,
+                        alreadyAssigned: true,
+                        assignedTrainingId: assignedTrainingId
+                    };
+                }
+                
+                if (!lastTrainingDate) return { 
+                    needed: true, 
+                    lastDate: null,
+                    monthsSince: 0,
+                    alreadyAssigned: false,
+                    assignedTrainingId: null
+                };
+                
+                const monthsSinceLastTraining = (refDate.getFullYear() - lastTrainingDate.getFullYear()) * 12 + 
+                                               (refDate.getMonth() - lastTrainingDate.getMonth());
+                
+                let requiredInterval = 12;
+                
+                switch(trainingType) {
+                    case 'quarterly': requiredInterval = 3; break;
+                    case 'refresh': requiredInterval = 6; break;
+                }
+                
+                return { 
+                    needed: monthsSinceLastTraining >= requiredInterval,
+                    lastDate: lastTrainingDate,
+                    monthsSince: monthsSinceLastTraining,
+                    alreadyAssigned: false,
+                    assignedTrainingId: null
+                };
+            };
+            
+            const needsWeaponRenewal = (guard, referenceDate) => {
+                if (!guard.weaponLicenseDate) return { needed: false, lastDate: null };
+                
+                const licenseDate = new Date(guard.weaponLicenseDate);
+                const refDate = new Date(referenceDate);
+                
+                let alreadyAssigned = false;
+                let assignedTrainingId = null;
+                
+                trainings.forEach(training => {
+                    if (training.type === "weapon" && training.guards && training.guards.includes(guard.id) && !training.completed) {
+                        const trainingDate = new Date(training.date);
+                        const trainingMonth = trainingDate.getMonth() + 1;
+                        const trainingYear = trainingDate.getFullYear();
+                        
+                        if (trainingYear == year && (month === 'all' || trainingMonth == month)) {
+                            alreadyAssigned = true;
+                            assignedTrainingId = training.id;
+                        }
+                    }
+                });
+                
+                if (alreadyAssigned) {
+                    return { 
+                        needed: false, 
+                        lastDate: licenseDate,
+                        monthsUntil: 0,
+                        alreadyAssigned: true,
+                        assignedTrainingId: assignedTrainingId
+                    };
+                }
+                
+                const monthsUntilExpiry = (licenseDate.getFullYear() - refDate.getFullYear()) * 12 + 
+                                         (licenseDate.getMonth() - refDate.getMonth());
+                
+                return { 
+                    needed: monthsUntilExpiry <= 3,
+                    lastDate: licenseDate,
+                    monthsUntil: monthsUntilExpiry,
+                    alreadyAssigned: false,
+                    assignedTrainingId: null
+                };
+            };
+            
+            const guardsNeedingTraining = [];
+            const monthsNames = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 
+                               'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+            
+            guards.forEach(guard => {
+                const trainingTypesToCheck = ['tactical', 'quarterly', 'attack', 'control', 'refresh'];
+                
+                trainingTypesToCheck.forEach(trainingType => {
+                    if (type !== 'all' && type !== trainingType) return;
+                    
+                    const checkResult = needsTraining(guard, trainingType, `${year}-${month}-01`);
+                    
+                    if (checkResult.needed || checkResult.alreadyAssigned) {
+                        let requiredMonth;
+                        if (checkResult.lastDate && checkResult.needed) {
+                            const lastDate = checkResult.lastDate;
+                            let requiredDate = new Date(lastDate);
+                            
+                            switch(trainingType) {
+                                case 'quarterly': requiredDate.setMonth(lastDate.getMonth() + 3); break;
+                                case 'refresh': requiredDate.setMonth(lastDate.getMonth() + 6); break;
+                                default: requiredDate.setFullYear(lastDate.getFullYear() + 1); break;
+                            }
+                            
+                            requiredMonth = requiredDate.getMonth() + 1;
+                        } else {
+                            requiredMonth = month !== 'all' ? parseInt(month) : new Date().getMonth() + 1;
+                        }
+                        
+                        if (month !== 'all' && requiredMonth != parseInt(month)) return;
+                        
+                        guardsNeedingTraining.push({
+                            guard: guard,
+                            trainingType: trainingType,
+                            lastDate: checkResult.lastDate,
+                            requiredMonth: requiredMonth,
+                            alreadyAssigned: checkResult.alreadyAssigned,
+                            assignedTrainingId: checkResult.assignedTrainingId
+                        });
+                    }
+                });
+                
+                if (type === 'all' || type === 'weapon') {
+                    const weaponCheck = needsWeaponRenewal(guard, `${year}-${month}-01`);
+                    
+                    if (weaponCheck.needed || weaponCheck.alreadyAssigned) {
+                        let requiredMonth;
+                        if (weaponCheck.lastDate && weaponCheck.needed) {
+                            requiredMonth = new Date(guard.weaponLicenseDate).getMonth() + 1;
+                        } else {
+                            requiredMonth = month !== 'all' ? parseInt(month) : new Date().getMonth() + 1;
+                        }
+                        
+                        if (month !== 'all' && requiredMonth != parseInt(month)) return;
+                        
+                        guardsNeedingTraining.push({
+                            guard: guard,
+                            trainingType: 'weapon',
+                            lastDate: weaponCheck.lastDate,
+                            requiredMonth: requiredMonth,
+                            alreadyAssigned: weaponCheck.alreadyAssigned,
+                            assignedTrainingId: weaponCheck.assignedTrainingId
+                        });
+                    }
+                }
+            });
+            
+            if (guardsNeedingTraining.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px;">
+                            <div class="alert alert-success">לא נמצאו מאבטחים הזקוקים לשיבוץ לאימון לפי הסינון שנבחר</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            guardsNeedingTraining.sort((a, b) => {
+                if (a.guard.name === b.guard.name) {
+                    return trainingTypes[a.trainingType].name.localeCompare(trainingTypes[b.trainingType].name);
+                }
+                return a.guard.name.localeCompare(b.guard.name);
+            });
+            
+            guardsNeedingTraining.forEach(item => {
+                const row = document.createElement('tr');
+                const trainingTypeInfo = trainingTypes[item.trainingType] || { name: 'חידוש רישיון נשק', color: '#34495e', icon: 'fas fa-gun' };
+                
+                let buttonText = item.alreadyAssigned ? "שובץ לאימון" : "שייך לאימון";
+                let buttonColor = item.alreadyAssigned ? "btn-warning" : "btn";
+                let buttonAction = item.alreadyAssigned ? 
+                    `removeFromTraining(${item.assignedTrainingId}, ${item.guard.id})` : 
+                    `openAssignTrainingModal(${item.guard.id}, '${item.trainingType}', ${item.requiredMonth}, ${year})`;
+                
+                row.innerHTML = `
+                    <td>${item.guard.name}</td>
+                    <td>${item.guard.idNumber}</td>
+                    <td>${item.guard.facility}</td>
+                    <td>
+                        <span style="color: ${trainingTypeInfo.color}; font-weight: 600;">
+                            <i class="${trainingTypeInfo.icon}"></i> ${trainingTypeInfo.name}
+                        </span>
+                    </td>
+                    <td>${item.lastDate ? formatDate(item.lastDate) : 'לא השתתף מעולם'}</td>
+                    <td>
+                        <span class="stats-badge" style="background-color: ${trainingTypeInfo.color};">${monthsNames[item.requiredMonth - 1]}</span>
+                    </td>
+                    <td>
+                        <button class="btn ${buttonColor}" onclick="${buttonAction}" style="padding: 5px 10px; font-size: 12px;">
+                            ${buttonText}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // פונקציה לפתיחת מודל בחירת אימון
+        window.openAssignTrainingModal = function(guardId, trainingType, month, year) {
+            // שמירת פרטי השיבוץ הממתין
+            pendingAssignment = {
+                guardId: guardId,
+                trainingType: trainingType,
+                month: month,
+                year: year
+            };
+            
+            // מציאת אימונים קיימים בחודש הנבחר
+            const existingTrainings = trainings.filter(t => {
+                const trainingDate = new Date(t.date);
+                return t.type === trainingType && 
+                       trainingDate.getFullYear() === year && 
+                       trainingDate.getMonth() + 1 === month &&
+                       !t.completed;
+            });
+            
+            const container = document.getElementById('existingTrainingsList');
+            container.innerHTML = '';
+            
+            if (existingTrainings.length > 0) {
+                existingTrainings.forEach(training => {
+                    const div = document.createElement('div');
+                    div.className = 'training-selection-item';
+                    div.innerHTML = `
+                        <label>
+                            <input type="radio" name="selectedTraining" value="${training.id}" style="margin-left: 10px;">
+                            <strong>${formatDate(training.date)}</strong> - ${training.location}
+                            <br>
+                            <small>מדריך: ${training.instructor} | משובצים: ${training.guards.length}</small>
+                        </label>
+                    `;
+                    container.appendChild(div);
+                });
+                
+                const assignBtn = document.createElement('button');
+                assignBtn.className = 'btn btn-success';
+                assignBtn.style.marginTop = '15px';
+                assignBtn.textContent = 'שייך לאימון שנבחר';
+                assignBtn.onclick = function() {
+                    const selectedRadio = document.querySelector('input[name="selectedTraining"]:checked');
+                    if (selectedRadio) {
+                        const trainingId = parseInt(selectedRadio.value);
+                        assignToExistingTraining(trainingId, guardId);
+                        document.getElementById('selectTrainingModal').classList.remove('active');
+                        pendingAssignment = null;
+                    } else {
+                        alert('אנא בחר אימון');
+                    }
+                };
+                container.appendChild(assignBtn);
+            } else {
+                container.innerHTML = '<div class="alert alert-warning">לא נמצאו אימונים מסוג זה בחודש הנבחר</div>';
+            }
+            
+            document.getElementById('selectTrainingModal').classList.add('active');
+        };
+        
+        // פונקציה לשיבוץ לאימון קיים
+        window.assignToExistingTraining = function(trainingId, guardId) {
+            const training = trainings.find(t => t.id === trainingId);
+            if (training) {
+                if (!training.guards.includes(guardId)) {
+                    training.guards.push(guardId);
+                    
+                    if (!guardsTrainingResults[trainingId]) {
+                        guardsTrainingResults[trainingId] = {};
+                    }
+                    guardsTrainingResults[trainingId][guardId] = "pending";
+                    
+                    refreshAllViews();
+                    showAlert('המאבטח שובץ לאימון בהצלחה', 'success');
+                } else {
+                    showAlert('המאבטח כבר משובץ לאימון זה', 'warning');
+                }
+            }
+        };
+        
+        // פונקציה ליצירת אימון חדש משיבוץ
+        window.createNewTrainingFromAssignment = function(guardId, trainingType, month, year, location = '', instructor = '', description = '') {
+            const trainingTypeName = trainingTypes[trainingType]?.name || 'חידוש רישיון נשק';
+            
+            const newTraining = {
+                id: trainings.length > 0 ? Math.max(...trainings.map(t => t.id)) + 1 : 1,
+                type: trainingType,
+                date: `${year}-${month.toString().padStart(2, '0')}-15`,
+                location: location || 'להגדיר',
+                instructor: instructor || 'להגדיר',
+                description: description || `${trainingTypeName} - שיבוץ אוטומטי`,
+                guards: [guardId],
+                completed: false
+            };
+            
+            trainings.push(newTraining);
+            
+            guardsTrainingResults[newTraining.id] = {
+                [guardId]: "pending"
+            };
+            
+            refreshAllViews();
+            showAlert('נוצר אימון חדש והמאבטח שובץ אליו בהצלחה', 'success');
+        };
+        
+        // פונקציה להסרה משיבוץ
+        window.removeFromTraining = function(trainingId, guardId) {
+            const training = trainings.find(t => t.id === trainingId);
+            if (!training) return;
+            
+            const index = training.guards.indexOf(guardId);
+            if (index !== -1) {
+                training.guards.splice(index, 1);
+                
+                if (guardsTrainingResults[trainingId] && guardsTrainingResults[trainingId][guardId]) {
+                    delete guardsTrainingResults[trainingId][guardId];
+                }
+                
+                // לא מוחקים אימון גם אם אין בו מאבטחים - שומרים אותו ריק
+                
+                refreshAllViews();
+                
+                const guard = guards.find(g => g.id === guardId);
+                showAlert(`${guard.name} הוסר משיבוץ האימון`, 'success');
+            }
+        };
+        
+        // פונקציות פעולה
+        window.updateTrainingResult = function(trainingId, guardId, result, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            if (!guardsTrainingResults[trainingId]) {
+                guardsTrainingResults[trainingId] = {};
+            }
+            
+            guardsTrainingResults[trainingId][guardId] = result;
+            
+            const selectElement = document.querySelector(`select[data-guard-id="${guardId}"][data-training-id="${trainingId}"]`);
+            if (selectElement) {
+                selectElement.className = `status-select ${getStatusClass(result)}`;
+            }
+            
+            const training = trainings.find(t => t.id === trainingId);
+            
+            // עדכון תאריך חידוש רישיון נשק
+            if (training && training.type === "weapon" && result === "passed" && training.completed) {
+                const guardIndex = guards.findIndex(g => g.id === guardId);
+                if (guardIndex !== -1) {
+                    // עדכון התאריך לאותו תאריך של האימון
+                    guards[guardIndex].weaponLicenseDate = training.date;
+                    showAlert(`תאריך חידוש רישיון הנשק של ${guards[guardIndex].name} עודכן ל-${formatDate(training.date)}`, 'success');
+                }
+            }
+            
+            refreshAllViews();
+            
+            const guard = guards.find(g => g.id === guardId);
+            const trainingType = trainingTypes[training.type].name;
+            const resultText = getStatusText(result);
+            
+            showAlert(`עודכן סטטוס עבור ${guard.name} באימון ${trainingType}: ${resultText}`, 'success');
+        };
+        
+        window.toggleTrainingCompletion = function(trainingId, completed) {
+            const trainingIndex = trainings.findIndex(t => t.id === trainingId);
+            if (trainingIndex !== -1) {
+                trainings[trainingIndex].completed = completed;
+                
+                // בדיקה אם יש צורך לעדכן תאריכי רישיון נשק
+                if (completed) {
+                    const training = trainings[trainingIndex];
+                    if (training.type === "weapon") {
+                        training.guards.forEach(guardId => {
+                            const result = guardsTrainingResults[trainingId]?.[guardId];
+                            if (result === "passed") {
+                                const guardIndex = guards.findIndex(g => g.id === guardId);
+                                if (guardIndex !== -1) {
+                                    guards[guardIndex].weaponLicenseDate = training.date;
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                refreshAllViews();
+                
+                const training = trainings[trainingIndex];
+                const trainingType = trainingTypes[training.type].name;
+                const statusText = completed ? "סומן כהסתיים" : "סומן כטרם הושלם";
+                
+                showAlert(`אימון ${trainingType} ${statusText}`, 'success');
+            }
+        };
+        
+        function openTrainingModal(trainingId) {
+            currentEditingTrainingId = trainingId;
+            const modal = document.getElementById('addTrainingModal');
+            const modalTitle = document.getElementById('trainingModalTitle');
+            const deleteBtn = document.getElementById('deleteTrainingBtn');
+            
+            if (trainingId) {
+                modalTitle.textContent = 'עריכת אימון';
+                deleteBtn.style.display = 'inline-block';
+                
+                const training = trainings.find(t => t.id === trainingId);
+                if (training) {
+                    document.getElementById('newTrainingType').value = training.type;
+                    document.getElementById('newTrainingDate').value = training.date;
+                    document.getElementById('newTrainingLocation').value = training.location;
+                    document.getElementById('newTrainingInstructor').value = training.instructor;
+                    document.getElementById('newTrainingDescription').value = training.description;
+                }
+            } else {
+                modalTitle.textContent = 'הוספת אימון חדש';
+                deleteBtn.style.display = 'none';
+                
+                const today = new Date();
+                const nextWeek = new Date(today);
+                nextWeek.setDate(today.getDate() + 7);
+                document.getElementById('newTrainingDate').value = nextWeek.toISOString().split('T')[0];
+                document.getElementById('newTrainingLocation').value = '';
+                document.getElementById('newTrainingInstructor').value = '';
+                document.getElementById('newTrainingDescription').value = '';
+            }
+            
+            refreshGuardsSelectionForTraining(trainingId);
+            modal.classList.add('active');
+        }
+        
+        window.editGuard = function(guardId) {
+            const guard = guards.find(g => g.id === guardId);
+            if (guard) {
+                document.getElementById('guardFullName').value = guard.name;
+                document.getElementById('guardId').value = guard.idNumber;
+                document.getElementById('guardFacility').value = guard.facility;
+                document.getElementById('guardWeaponDate').value = guard.weaponLicenseDate || '';
+                
+                document.getElementById('saveGuardBtn').textContent = 'עדכן מאבטח';
+                document.getElementById('saveGuardBtn').onclick = function() {
+                    updateGuard(guardId);
+                };
+                
+                document.getElementById('addGuardModal').classList.add('active');
+            }
+        };
+        
+        function updateGuard(guardId) {
+            const name = document.getElementById('guardFullName').value;
+            const idNumber = document.getElementById('guardId').value;
+            const facility = document.getElementById('guardFacility').value;
+            const weaponDate = document.getElementById('guardWeaponDate').value;
+            
+            if (!name || !idNumber) {
+                alert('נא למלא שם מלא ותעודת זהות');
+                return;
+            }
+            
+            const guardIndex = guards.findIndex(g => g.id === guardId);
+            if (guardIndex !== -1) {
+                guards[guardIndex] = {
+                    ...guards[guardIndex],
+                    name: name,
+                    idNumber: idNumber,
+                    facility: facility,
+                    weaponLicenseDate: weaponDate || null
+                };
+                
+                refreshAllViews();
+                document.getElementById('addGuardModal').classList.remove('active');
+                showAlert('פרטי המאבטח עודכנו בהצלחה', 'success');
+            }
+            
+            document.getElementById('saveGuardBtn').textContent = 'שמור מאבטח';
+            document.getElementById('saveGuardBtn').onclick = function() {
+                const name = document.getElementById('guardFullName').value;
+                const idNumber = document.getElementById('guardId').value;
+                const facility = document.getElementById('guardFacility').value;
+                const weaponDate = document.getElementById('guardWeaponDate').value;
+                
+                if (!name || !idNumber) {
+                    alert('נא למלא שם מלא ותעודת זהות');
+                    return;
+                }
+                
+                const existingGuard = guards.find(g => g.idNumber === idNumber);
+                if (existingGuard) {
+                    alert('קיים כבר מאבטח עם תעודת זהות זו');
+                    return;
+                }
+                
+                const newGuard = {
+                    id: guards.length > 0 ? Math.max(...guards.map(g => g.id)) + 1 : 1,
+                    name: name,
+                    idNumber: idNumber,
+                    facility: facility,
+                    weaponLicenseDate: weaponDate || null
+                };
+                
+                guards.push(newGuard);
+                refreshAllViews();
+                document.getElementById('addGuardModal').classList.remove('active');
+                
+                showAlert('מאבטח נוסף בהצלחה למערכת', 'success');
+            };
+        }
+        
+        window.deleteGuard = function(guardId) {
+            if (confirm('האם אתה בטוח שברצונך למחוק מאבטח זה?')) {
+                // מחיקת המאבטח מרשימת המאבטחים הפעילים בלבד
+                guards = guards.filter(g => g.id !== guardId);
+                
+                // הסרת המאבטח מאימונים עתידיים בלבד (אלו שלא הסתיימו)
+                trainings.forEach(training => {
+                    if (!training.completed && training.guards) {
+                        const index = training.guards.indexOf(guardId);
+                        if (index !== -1) {
+                            training.guards.splice(index, 1);
+                            
+                            if (guardsTrainingResults[training.id] && guardsTrainingResults[training.id][guardId]) {
+                                delete guardsTrainingResults[training.id][guardId];
+                            }
+                        }
+                    }
+                });
+                
+                // שומרים את ההיסטוריה - לא מוחקים מאימונים שהסתיימו
+                
+                refreshAllViews();
+                showAlert('המאבטח נמחק מרשימת המאבטחים הפעילים. נתוני היסטוריה נשמרו.', 'success');
+            }
+        };
+        
+        function exportGuardsToExcel() {
+            const exportData = [
+                ['שם מלא', 'תעודת זהות', 'מתקן', 
+                 'אימון טקטי אחרון', 'אימון רבעוני אחרון', 'יום עיון אחרון',
+                 'תרגיל תקיפה אחרון', 'בקרה למאבטח אחרון', 'רענון משטרתי אחרון',
+                 'תאריך חידוש רישיון נשק']
+            ];
+            
+            guards.forEach(guard => {
+                const lastTrainingDates = {};
+                
+                trainings.forEach(training => {
+                    if (training.guards && training.guards.includes(guard.id)) {
+                        const result = guardsTrainingResults[training.id]?.[guard.id];
+                        if (result && result !== "not_attended" && result !== "pending") {
+                            const trainingDate = new Date(training.date);
+                            const currentLastDate = lastTrainingDates[training.type] ? new Date(lastTrainingDates[training.type]) : null;
+                            
+                            if (!currentLastDate || trainingDate > currentLastDate) {
+                                lastTrainingDates[training.type] = training.date;
+                            }
+                        }
+                    }
+                });
+                
+                exportData.push([
+                    guard.name,
+                    guard.idNumber,
+                    guard.facility,
+                    lastTrainingDates.tactical ? formatDate(lastTrainingDates.tactical) : '-',
+                    lastTrainingDates.quarterly ? formatDate(lastTrainingDates.quarterly) : '-',
+                    lastTrainingDates.seminar ? formatDate(lastTrainingDates.seminar) : '-',
+                    lastTrainingDates.attack ? formatDate(lastTrainingDates.attack) : '-',
+                    lastTrainingDates.control ? formatDate(lastTrainingDates.control) : '-',
+                    lastTrainingDates.refresh ? formatDate(lastTrainingDates.refresh) : '-',
+                    guard.weaponLicenseDate ? formatDate(guard.weaponLicenseDate) : '-'
+                ]);
+            });
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            
+            if (!ws['!cols']) ws['!cols'] = [];
+            for (let i = 0; i < exportData[0].length; i++) {
+                ws['!cols'][i] = { width: 20 };
+            }
+            
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell_address = {c:C, r:R};
+                    const cell_ref = XLSX.utils.encode_cell(cell_address);
+                    
+                    if (!ws[cell_ref]) continue;
+                    
+                    ws[cell_ref].s = {
+                        alignment: {
+                            horizontal: 'right',
+                            vertical: 'center'
+                        },
+                        font: {
+                            name: 'Arial',
+                            sz: 12
+                        }
+                    };
+                }
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws, "מאבטחים");
+            XLSX.writeFile(wb, `מאבטחים_${new Date().toISOString().slice(0,10)}.xlsx`);
+            
+            showAlert('טבלת המאבטחים יוצאה בהצלחה', 'success');
+        }
+        
+        function exportHistoryToExcel() {
+            const selectedYear = document.getElementById('historyYearSelect').value;
+            
+            let filteredTrainings = trainings.filter(training => training.completed);
+            
+            if (selectedYear !== 'all') {
+                filteredTrainings = filteredTrainings.filter(training => {
+                    const year = new Date(training.date).getFullYear();
+                    return year == selectedYear;
+                });
+            }
+            
+            filteredTrainings.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (filteredTrainings.length === 0) {
+                alert('אין נתונים לייצוא עבור השנה הנבחרת');
+                return;
+            }
+            
+            const exportData = [
+                ['סוג אימון', 'תאריך', 'מיקום', 'מדריך', 'תיאור', 'מספר משתתפים', 'מאבטחים שהשתתפו', 'סטטוסים']
+            ];
+            
+            filteredTrainings.forEach(training => {
+                const trainingType = trainingTypes[training.type];
+                
+                let participatingGuards = [];
+                let statusList = [];
+                
+                if (training.guards && guardsTrainingResults[training.id]) {
+                    training.guards.forEach(guardId => {
+                        const guard = guards.find(g => g.id === guardId);
+                        const result = guardsTrainingResults[training.id][guardId];
+                        if (guard && result && result !== "not_attended" && result !== "pending") {
+                            participatingGuards.push(guard.name);
+                            statusList.push(getStatusText(result));
+                        }
+                    });
+                }
+                
+                exportData.push([
+                    trainingType.name,
+                    formatDate(training.date),
+                    training.location,
+                    training.instructor,
+                    training.description,
+                    participatingGuards.length,
+                    participatingGuards.join(', '),
+                    statusList.join(', ')
+                ]);
+            });
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            
+            if (!ws['!cols']) ws['!cols'] = [];
+            for (let i = 0; i < exportData[0].length; i++) {
+                ws['!cols'][i] = { width: i === 4 ? 40 : 20 };
+            }
+            
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell_address = {c:C, r:R};
+                    const cell_ref = XLSX.utils.encode_cell(cell_address);
+                    
+                    if (!ws[cell_ref]) continue;
+                    
+                    ws[cell_ref].s = {
+                        alignment: {
+                            horizontal: 'right',
+                            vertical: 'center',
+                            wrapText: true
+                        },
+                        font: {
+                            name: 'Arial',
+                            sz: 12
+                        }
+                    };
+                }
+            }
+            
+            const fileName = selectedYear === 'all' ? 'היסטוריית_אימונים_כל_השנים' : `היסטוריית_אימונים_${selectedYear}`;
+            XLSX.utils.book_append_sheet(wb, ws, "היסטוריה");
+            XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+            
+            showAlert(`היסטוריה יוצאה בהצלחה`, 'success');
+        }
+        
+        // פונקציות שמירה וטעינת נתונים - LOCAL STORAGE
+        function saveDataToStorage() {
+            try {
+                const data = {
+                    guards: guards,
+                    trainings: trainings,
+                    guardsTrainingResults: guardsTrainingResults,
+                    lastBackup: new Date().toISOString(),
+                    trainingFilters: trainingFiltersState
+                };
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                console.log('Data saved to localStorage at', new Date().toLocaleString());
+                return true;
+            } catch (error) {
+                console.error('Error saving data to localStorage:', error);
+                return false;
+            }
+        }
+        
+        function loadData(forceRestore = false) {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            
+            if (savedData && !forceRestore) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    guards = parsedData.guards || [];
+                    trainings = parsedData.trainings || [];
+                    guardsTrainingResults = parsedData.guardsTrainingResults || {};
+                    trainingFiltersState = parsedData.trainingFilters || { year: null, type: null, status: 'incomplete' };
+                    
+                    console.log('Data loaded from localStorage. Last backup:', parsedData.lastBackup);
+                } catch (error) {
+                    console.error('Error parsing local data:', error);
+                    loadSampleData();
+                }
+            } else {
+                loadSampleData();
+            }
+            
+            initializeUI();
+        }
+        
+        function loadSampleData() {
+            guards = JSON.parse(JSON.stringify(sampleGuards));
+            trainings = JSON.parse(JSON.stringify(sampleTrainings));
+            guardsTrainingResults = JSON.parse(JSON.stringify(sampleTrainingResults));
+            console.log('Loaded sample data');
+        }
+        
+        function initializeUI() {
+            refreshAllViews();
+        }
+        
+        function checkConnection() {
+            isOnline = navigator.onLine;
+            
+            if (!isOnline) {
+                showAlert('מצב לא מקוון. נתונים ישמרו במכשיר זה בלבד.', 'warning');
+            }
+            
+            window.addEventListener('online', () => {
+                isOnline = true;
+                showAlert('חיבור לאינטרנט שוחזר. נתונים יסונכרנו עם השרת.', 'success');
+            });
+            
+            window.addEventListener('offline', () => {
+                isOnline = false;
+                showAlert('אין חיבור לאינטרנט. נתונים ישמרו במכשיר זה בלבד.', 'warning');
+            });
+        }
+        
+        function showAlert(message, type) {
+            const existingAlerts = document.querySelectorAll('.alert:not(.license-renewal-alert *)');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const main = document.querySelector('main');
+            main.insertBefore(alertDiv, main.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('he-IL', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case "passed": return "עבר";
+                case "failed": return "נכשל";
+                case "attended": return "השתתף";
+                case "not_attended": return "לא השתתף";
+                default: return "ממתין";
+            }
+        }
+        
+        function getStatusClass(status) {
+            switch(status) {
+                case "passed": return "status-passed";
+                case "failed": return "status-failed";
+                case "attended": return "status-attended";
+                case "not_attended": return "status-not-attended";
+                default: return "status-pending";
+            }
+        }
+        
+        // שמירת נתונים לפני סגירת הדף
+        window.addEventListener('beforeunload', function() {
+            saveDataToStorage();
+        });
+    </script>
+</body>
+</html>
